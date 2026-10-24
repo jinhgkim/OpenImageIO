@@ -473,6 +473,79 @@ test_paramlistspan()
 
 
 
+template<typename PL>
+static void
+test_bounded_getattribute(const PL& pl)
+{
+    int i = -1;
+    OIIO_CHECK_ASSERT(pl.getattribute("foo", TypeInt, span<int>(i)));
+    OIIO_CHECK_EQUAL(i, 42);
+    i = -1;
+    OIIO_CHECK_ASSERT(pl.getattribute("foo", TypeInt, &i));
+    OIIO_CHECK_EQUAL(i, 42);
+
+    float f = -1.0f;
+    OIIO_CHECK_ASSERT(
+        pl.getattribute_indexed("red", 0, TypeFloat, span<float>(f)));
+    OIIO_CHECK_EQUAL(f, 1.0f);
+    f = -1.0f;
+    OIIO_CHECK_ASSERT(pl.getattribute_indexed("red", 2, TypeFloat, &f));
+    OIIO_CHECK_EQUAL(f, 0.0f);
+
+    f = -1.0f;
+    OIIO_CHECK_ASSERT(!pl.getattribute_indexed("red", 3, TypeFloat, &f));
+    OIIO_CHECK_ASSERT(!pl.getattribute_indexed("red", -1, TypeFloat, &f));
+    OIIO_CHECK_ASSERT(
+        !pl.getattribute_indexed("red", -1, TypeFloat, span<float>(f)));
+    OIIO_CHECK_EQUAL(f, -1.0f);
+    std::string s = "unchanged";
+    OIIO_CHECK_ASSERT(!pl.getattribute_indexed("red", -1, s));
+    OIIO_CHECK_EQUAL(s, "unchanged");
+
+#ifdef NDEBUG
+    // Debug builds assert on a span whose size doesn't match the type.
+    double d = -1.0;
+    OIIO_CHECK_ASSERT(
+        !pl.getattribute("foo", TypeInt, as_writable_bytes(span<double>(d))));
+    OIIO_CHECK_ASSERT(
+        !pl.getattribute_indexed("red", 0, TypeFloat,
+                                 as_writable_bytes(span<double>(d))));
+    OIIO_CHECK_EQUAL(d, -1.0);
+#endif
+}
+
+
+
+static void
+test_bounded_access()
+{
+    std::cout << "test_bounded_access\n";
+
+    int ivals[] = { 10, 20, 30 };
+    ParamValue pvi("ints", TypeDesc(TypeDesc::INT, 3), 1, cspan<int>(ivals));
+    OIIO_CHECK_EQUAL(pvi.get_int_indexed(0), 10);
+    OIIO_CHECK_EQUAL(pvi.get_int_indexed(2), 30);
+    OIIO_CHECK_EQUAL(pvi.get_int_indexed(3, -7), -7);
+    OIIO_CHECK_EQUAL(pvi.get_int_indexed(-1, -7), -7);
+    OIIO_CHECK_EQUAL(pvi.get_int_indexed(1 << 30, -7), -7);
+    OIIO_CHECK_EQUAL(pvi.get_float_indexed(1), 20.0f);
+    OIIO_CHECK_EQUAL(pvi.get_float_indexed(3, -7.0f), -7.0f);
+    OIIO_CHECK_EQUAL(pvi.get_float_indexed(-1, -7.0f), -7.0f);
+
+    ustring svals[] = { ustring("a"), ustring("b") };
+    ParamValue pvs("strs", TypeString, 2, cspan<ustring>(svals));
+    OIIO_CHECK_EQUAL(pvs.get_ustring_indexed(1), "b");
+    OIIO_CHECK_EQUAL(pvs.get_ustring_indexed(2), "");
+    OIIO_CHECK_EQUAL(pvs.get_ustring_indexed(-1), "");
+
+    ParamValueList pvlist;
+    populate_pvl(pvlist);
+    test_bounded_getattribute(pvlist);
+    test_bounded_getattribute(ParamValueSpan(pvlist));
+}
+
+
+
 static void
 print_pv(const ParamValue& pv)
 {
@@ -550,6 +623,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_delegates();
     test_implied_construction();
     test_paramlistspan();
+    test_bounded_access();
 
     return unit_test_failures;
 }

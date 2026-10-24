@@ -134,6 +134,40 @@ test_templates()
 
 
 
+static void
+test_convert_type_span()
+{
+    std::cout << "test_convert_type_span\n";
+    int src        = 42;
+    float dst      = 0.0f;
+    float sentinel = -1.0f;
+
+    OIIO_CHECK_ASSERT(convert_type(TypeInt, as_bytes(cspan<int>(src)),
+                                   TypeFloat,
+                                   as_writable_bytes(span<float>(dst))));
+    OIIO_CHECK_EQUAL(dst, 42.0f);
+
+    // Source span too short for the source type
+    dst = sentinel;
+    OIIO_CHECK_ASSERT(!convert_type(TypeInt, as_bytes(cspan<int>(src)).first(2),
+                                    TypeFloat,
+                                    as_writable_bytes(span<float>(dst))));
+    OIIO_CHECK_EQUAL(dst, sentinel);
+
+    // Destination span too short for the destination type
+    double ddst = sentinel;
+    OIIO_CHECK_ASSERT(
+        !convert_type(TypeInt, as_bytes(cspan<int>(src)), TypeDesc::DOUBLE,
+                      as_writable_bytes(span<double>(ddst)).first(4)));
+    OIIO_CHECK_EQUAL(ddst, double(sentinel));
+
+    // Empty spans
+    OIIO_CHECK_ASSERT(!convert_type(TypeInt, {}, TypeFloat,
+                                    as_writable_bytes(span<float>(dst))));
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -142,6 +176,7 @@ main(int /*argc*/, char* /*argv*/[])
     OIIO_CHECK_EQUAL(sizeof(TypeDesc), sizeof(uint64_t));
 
     test_templates();
+    test_convert_type_span();
 
     test_type<float>("float", TypeDesc(TypeDesc::FLOAT), TypeFloat, 1.5f,
                      "1.5");

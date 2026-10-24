@@ -173,13 +173,27 @@ ParamValue::get_int(int defaultval) const
 
 
 
+// The bytes of the element that starts at scalar position `index`, or an
+// empty span if that element would extend past the end of the data.
+static cspan<std::byte>
+indexed_element_bytes(const ParamValue& p, int index)
+{
+    size_t elemsize        = p.type().elementtype().size();
+    size_t offset          = size_t(index) * p.type().basesize();
+    cspan<std::byte> bytes = p.as_bytes();
+    if (index < 0 || offset > bytes.size() || elemsize > bytes.size() - offset)
+        return {};
+    return bytes.subspan(offset, elemsize);
+}
+
+
+
 int
 ParamValue::get_int_indexed(int index, int defaultval) const
 {
     int val = defaultval;
-    convert_type(type().elementtype(),
-                 (const char*)data() + index * type().basesize(), TypeInt,
-                 &val);
+    convert_type(type().elementtype(), indexed_element_bytes(*this, index),
+                 TypeInt, OIIO::as_writable_bytes(make_span(&val, 1)));
     return val;
 }
 
@@ -197,9 +211,8 @@ float
 ParamValue::get_float_indexed(int index, float defaultval) const
 {
     float val = defaultval;
-    convert_type(type().elementtype(),
-                 (const char*)data() + index * type().basesize(), TypeFloat,
-                 &val);
+    convert_type(type().elementtype(), indexed_element_bytes(*this, index),
+                 TypeFloat, OIIO::as_writable_bytes(make_span(&val, 1)));
     return val;
 }
 
@@ -348,8 +361,11 @@ ParamValue::get_ustring_indexed(int index) const
 {
     // Special case for retrieving a string already in ustring form,
     // super inexpensive.
-    if (type() == TypeDesc::STRING)
+    if (type() == TypeDesc::STRING) {
+        if (index < 0 || index >= int(type().numelements()) * nvalues())
+            return ustring();
         return get<ustring>(index);
+    }
     if (type() == TypeDesc::USTRINGHASH)
         return ustring(get<ustringhash>());
     return ustring(get_string_indexed(index));
@@ -598,7 +614,7 @@ ParamValueList::getattribute_indexed(string_view name, int index, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         return convert_type(basetype,
@@ -632,7 +648,7 @@ ParamValueList::getattribute_indexed(string_view name, int index,
 {
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         ustring s;
@@ -895,7 +911,7 @@ ParamValueSpan::getattribute_indexed(string_view name, int index, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         return convert_type(basetype,
@@ -929,7 +945,7 @@ ParamValueSpan::getattribute_indexed(string_view name, int index,
 {
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         ustring s;
