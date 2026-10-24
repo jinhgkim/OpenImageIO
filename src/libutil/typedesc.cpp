@@ -918,4 +918,15 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     return false;
 }
 
+
+
+bool
+convert_type(TypeDesc srctype, cspan<std::byte> src, TypeDesc dsttype,
+             span<std::byte> dst)
+{
+    if (src.size_bytes() < srctype.size() || dst.size_bytes() < dsttype.size())
+        return false;
+    return convert_type(srctype, src.data(), dsttype, dst.data());
+}
+
 OIIO_NAMESPACE_3_1_END

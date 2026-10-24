@@ -807,8 +807,8 @@ public:
         OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
                      && type.size() == value.size_bytes());
         // Just call the untyped bytes version underneath.
-        return getattribute(name, type, as_writable_bytes(value),
-                            casesensitive);
+        return getattribute_indexed(name, index, type, as_writable_bytes(value),
+                                    casesensitive);
     }
     bool getattribute_indexed(string_view name, int index, TypeDesc type,
                               span<std::byte> value,

@@ -605,7 +605,13 @@ ImageSpec::getattribute(string_view name, TypeDesc type, span<std::byte> value,
         OIIO_DASSERT(value.size_bytes() == type.size());
         return false;
     }
-    return getattribute(name, type, value.data(), casesensitive);
+    ParamValue pv;
+    auto p = find_attribute(name, pv, TypeUnknown, casesensitive);
+    if (p) {
+        return convert_type(p->type(), p->as_bytes(), type, value);
+    } else {
+        return false;
+    }
 }
 
 
@@ -614,13 +620,11 @@ bool
 ImageSpec::getattribute(string_view name, TypeDesc type, void* value,
                         bool casesensitive) const
 {
-    ParamValue pv;
-    auto p = find_attribute(name, pv, TypeUnknown, casesensitive);
-    if (p) {
-        return convert_type(p->type(), p->data(), type, value);
-    } else {
-        return false;
-    }
+    // Unsafe: trusts that value points to at least type.size() bytes.
+    return getattribute(name, type,
+                        span<std::byte>(static_cast<std::byte*>(value),
+                                        type.size()),
+                        casesensitive);
 }
 
 
