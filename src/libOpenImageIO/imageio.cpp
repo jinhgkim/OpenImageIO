@@ -299,14 +299,6 @@ openimageio_version()
 
 
 
-void
-pvt::append_error(string_view message)
-{
-    Strutil::pvt::append_error(message);
-}
-
-
-
 bool
 has_error()
 {

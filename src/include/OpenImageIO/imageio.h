@@ -4737,7 +4737,7 @@ void debugfmt (const char* fmt, Args&&... args)
 
 namespace pvt {
 // For internal use - use errorfmt() for a nicer interface.
-OIIO_API void append_error(string_view message);
+OIIO_UTIL_API void append_error(string_view message);
 }
 
 /// Internal function to log time recorded by an OIIO::timer(). It will only

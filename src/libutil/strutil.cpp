@@ -240,6 +240,15 @@ Strutil::pvt::append_error(string_view message)
 }
 
 
+namespace pvt {
+OIIO_UTIL_API void
+append_error(string_view message)
+{
+    Strutil::pvt::append_error(message);
+}
+}  // namespace pvt
+
+
 bool
 Strutil::pvt::has_error()
 {
