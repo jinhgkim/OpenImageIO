@@ -918,4 +918,18 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
     return false;
 }
 
+
+
+bool
+convert_type(TypeDesc srctype, cspan<std::byte> src, TypeDesc dsttype,
+             span<std::byte> dst, int n)
+{
+    size_t count = n > 1 ? size_t(n) : size_t(1);
+    // Divide rather than multiply so a huge n can't overflow the check.
+    if (src.size_bytes() / count < srctype.size()
+        || dst.size_bytes() / count < dsttype.size())
+        return false;
+    return convert_type(srctype, src.data(), dsttype, dst.data(), n);
+}
+
 OIIO_NAMESPACE_3_1_END

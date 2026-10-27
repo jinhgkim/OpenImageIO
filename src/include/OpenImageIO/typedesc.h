@@ -614,6 +614,17 @@ OIIO_UTIL_API bool
 convert_type(TypeDesc srctype, const void* src,
              TypeDesc dsttype, void* dst, int n = 1);
 
+/// Bounded version of `convert_type()` that converts `n` values (each of
+/// which may itself be an array). Returns false without reading or writing
+/// if `src` holds fewer than `n * srctype.size()` bytes or `dst` holds
+/// fewer than `n * dsttype.size()` bytes. As with the pointer version,
+/// `n < 1` is treated as 1.
+///
+/// @version 3.3
+OIIO_UTIL_API bool
+convert_type(TypeDesc srctype, cspan<std::byte> src,
+             TypeDesc dsttype, span<std::byte> dst, int n = 1);
+
 
 OIIO_NAMESPACE_3_1_END
 
